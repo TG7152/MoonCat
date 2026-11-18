@@ -1,0 +1,483 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>双向兑换平台</title><style>:root{font-family:system-ui,-apple-system,'Microsoft YaHei',sans-serif;color:#17243d;background:#f3f6fc}*{box-sizing:border-box}body{margin:0}header,footer{background:#101d38;color:white;padding:18px max(20px,calc((100vw - 1100px)/2));display:flex;justify-content:space-between;align-items:center;gap:15px}header b{font-size:23px}.wrap{max-width:1100px;margin:auto;padding:35px 18px}.hero{background:linear-gradient(125deg,#0753cb,#122e85);color:white;padding:38px;border-radius:20px;display:grid;grid-template-columns:1fr 1fr;gap:30px}.hero h1{font-size:37px;line-height:1.3}.panel{background:white;color:#19243b;border-radius:17px;padding:24px;box-shadow:0 12px 30px #001b451a}button,input,select,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:10px;padding:12px 18px;background:#0b63e5;color:white;font-weight:700}button.secondary{background:#eaf1ff;color:#1655ae}button.ghost{background:transparent;color:inherit;border:1px solid #8196b4}input,select,textarea{width:100%;border:1px solid #ccd5e5;border-radius:9px;padding:12px;margin:7px 0 15px;background:white;color:#17243d}label{font-size:13px;font-weight:700;color:#53617b}.tabs{display:flex;gap:8px;margin-bottom:20px}.tabs button{flex:1}.rate{font-size:13px;color:#66758d;margin:0 0 16px}.full{width:100%}.methods{display:flex;gap:12px;flex-wrap:wrap}.chip{background:white;border:1px solid #d9e3f1;padding:13px 20px;border-radius:11px}.section{margin-top:35px}.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}.step{background:white;border-radius:14px;padding:22px;text-align:center}.step strong{display:block;color:#1768e6;font-size:27px}footer{margin-top:40px;font-size:13px}a{color:inherit}dialog{border:0;border-radius:16px;max-width:min(700px,95vw);width:100%;box-shadow:0 20px 90px #0005;padding:25px}dialog::backdrop{background:#07172ab0}.top{display:flex;align-items:center;justify-content:space-between}.top button{background:#e7edf7;color:#334}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.notice{padding:12px;border-radius:9px;background:#fff4d9;color:#785400;font-size:13px}.item{background:#f3f6fc;border-radius:10px;padding:12px;margin:8px 0;word-break:break-word}.muted{color:#66758d;font-size:13px}.adminnav{display:flex;flex-wrap:wrap;gap:7px;margin:15px 0}.adminnav button{padding:9px}.hidden{display:none!important}table{width:100%;border-collapse:collapse;font-size:12px}td,th{border-bottom:1px solid #e0e6f0;padding:9px;text-align:left}#contactFloat{position:fixed;right:18px;bottom:18px;box-shadow:0 7px 20px #0003} @media(max-width:750px){.hero{grid-template-columns:1fr;padding:24px}.hero h1{font-size:29px}.steps{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}header,footer{padding:18px}footer{flex-wrap:wrap}}
+button:disabled{cursor:wait;opacity:.6}#submitOrder:disabled{cursor:default}#connectionStatus:empty{display:none}</style></head><body><header><b>◈ 清音兑换</b><span>数字资产 ⇄ 人民币</span></header><main class="wrap"><div class="hero"><div><h1>加密货币 ⇄ 人民币<br>双向兑换</h1><p>清晰报价 · 便捷提交 · 人工客服</p><p style="opacity:.8">兑换申请提交后，请按客服确认的信息操作。汇率仅为后台配置的参考报价。</p><button class="ghost" onclick="showContact()">联系客服</button></div><div class="panel"><div class="tabs"><button id="sellBtn" onclick="setDirection('sell')">USDT → CNY</button><button id="buyBtn" class="secondary" onclick="setDirection('buy')">CNY → USDT</button></div><label id="inputLabel">兑换数量（USDT）</label><input id="amount" type="number" min="0" step="any" placeholder="请输入兑换数量" oninput="calculate()"><label id="outputLabel">预计获得（CNY）</label><input id="result" readonly><p class="rate" id="rateText"></p><label>您的收款方式</label><select id="method"></select><label>您的收款账号 / 钱包地址</label><input id="account" maxlength="300" placeholder="填写用于收款的账号"><button class="full" id="submitOrder" onclick="createOrder()" disabled>提交兑换申请</button><p class="muted" id="connectionStatus" role="status"></p><button class="secondary hidden" id="reloadConfig" onclick="loadPublicConfig()">重试连接</button><p class="muted">请勿在网页中输入银行卡密码、支付密码或私钥。</p></div></div><section class="section"><h2>支持的支付与收款方式</h2><div class="methods" id="methodChips"></div></section><section class="section"><h2>兑换流程</h2><div class="steps"><div class="step"><strong>01</strong>填写兑换信息</div><div class="step"><strong>02</strong>联系客服核对</div><div class="step"><strong>03</strong>按确认信息付款</div><div class="step"><strong>04</strong>核验后完成兑换</div></div></section></main><footer><span>© 清音兑换 · 演示版本</span><span><button class="ghost" onclick="showContact()">联系客服</button> <button class="ghost" onclick="openAdmin()">管理入口</button></span></footer><button id="contactFloat" onclick="showContact()">☏ 联系客服</button><dialog id="contactDialog"><div class="top"><h2>联系客服</h2><button onclick="contactDialog.close()">✕</button></div><div id="contactList"></div></dialog><dialog id="orderDialog"><div class="top"><h2>兑换申请</h2><button onclick="orderDialog.close()">✕</button></div><div id="orderInfo"></div></dialog><dialog id="adminDialog"><div class="top"><h2>后台管理</h2><button onclick="adminDialog.close()">✕</button></div><div id="loginArea"><form id="loginForm"><label for="username">管理员账号</label><input id="username" type="text" inputmode="numeric" pattern="[0-9]{1,32}" maxlength="32" autocomplete="username" required><label for="password">管理员密码</label><input id="password" type="password" autocomplete="current-password" required><button id="loginButton" class="full" type="submit">进入后台</button></form><p class="muted" id="loginStatus" role="status">请使用已授权的管理员账号登录。</p></div><div id="adminArea" class="hidden"><div class="adminnav"><button onclick="tab('settings')">汇率设置</button><button onclick="tab('payments')">支付方式</button><button onclick="tab('contacts')">客服方式</button><button onclick="tab('orders')">订单管理</button><button onclick="tab('telegram')">TG 机器人</button><button onclick="tab('security')">修改密码</button><button class="secondary" id="logoutButton" onclick="logout()">退出</button></div><p class="muted" id="adminStatus" role="status"></p><div id="settingsTab"><div class="grid"><div><label>USDT 卖出汇率（1 USDT 可得 CNY）</label><input id="sellRate" type="number" step="any"></div><div><label>USDT 买入汇率（1 USDT 需付 CNY）</label><input id="buyRate" type="number" step="any"></div></div><label>手续费（%）</label><input id="fee" type="number" step="any" min="0" max="99"><button onclick="saveRates(this)">保存汇率</button></div><div id="paymentsTab" class="hidden"><h3>收付款配置</h3><p class="muted">币种决定 TG 机器人在哪个兑换方向提供该账号。USDT 请在方式名称中注明网络。</p><div id="paymentList"></div><label>方式名称</label><input id="paymentName" maxlength="80" placeholder="微信 / 支付宝 / 银行卡 / QQ / USDT-TRC20"><label for="paymentCurrency">平台收款币种</label><select id="paymentCurrency"><option value="CNY">人民币（CNY）</option><option value="USDT">USDT</option></select><label>账号 / 钱包地址</label><input id="paymentValue" maxlength="300" placeholder="输入收款账号或钱包地址"><label>备注（可填写开户行、网络等）</label><input id="paymentNote" maxlength="300"><button onclick="addPayment(this)">添加方式</button></div><div id="contactsTab" class="hidden"><div id="adminContactList"></div><label>客服渠道</label><input id="contactName" maxlength="80" placeholder="微信 / QQ / Telegram / 电话"><label>联系方式</label><input id="contactValue" maxlength="300" placeholder="账号、号码或链接"><button onclick="addContact(this)">添加客服</button></div><div id="ordersTab" class="hidden"><div style="overflow:auto" id="ordersList"></div><button class="secondary hidden" id="moreOrders" onclick="loadOrders(true)">加载更多订单</button></div><div id="telegramTab" class="hidden"><p>在 <a href="https://supabase.com/dashboard/project/hmryeiavoficjvjexmuy/functions/secrets" target="_blank" rel="noopener">Supabase Edge Function Secrets</a> 保存 <code>TELEGRAM_BOT_TOKEN</code> 后，点击下方按钮连接机器人。</p><button onclick="connectTelegram(this)">连接 TG 机器人</button><p class="muted" id="telegramStatus" role="status"></p></div><div id="securityTab" class="hidden"><label>新管理员密码（至少 10 位）</label><input id="newPassword" type="password" autocomplete="new-password"><button onclick="changePassword(this)">更新密码</button></div></div></dialog>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4"></script>
+<script>
+'use strict';
+
+const PROJECT = {"url": "https://hmryeiavoficjvjexmuy.supabase.co", "key": "sb_publishable_49fAAtsyW4gpZezuNhISRA_7ePLqMbw"};
+
+const $ = id => document.getElementById(id);
+const db = window.supabase?.createClient(PROJECT.url, PROJECT.key, {
+  auth: { detectSessionInUrl: false }
+});
+const statusOptions = ['待联系客服', '待付款', '核验中', '已完成', '已取消'];
+const pageSize = 50;
+let direction = 'sell';
+let rates = null;
+let methods = [];
+let contacts = [];
+let pendingOrder = null;
+let submitting = false;
+let adminUser = null;
+let orders = [];
+let activeTab = 'settings';
+let tabRequest = 0;
+let configRequest = 0;
+
+function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[character]);
+}
+
+async function read(query) {
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
+}
+
+function setDirection(value) {
+  direction = value;
+  $('sellBtn').className = value === 'sell' ? '' : 'secondary';
+  $('buyBtn').className = value === 'buy' ? '' : 'secondary';
+  $('inputLabel').textContent = value === 'sell' ? '兑换数量（USDT）' : '支付金额（CNY）';
+  $('outputLabel').textContent = value === 'sell' ? '预计获得（CNY）' : '预计获得（USDT）';
+  calculate();
+}
+
+function calculate() {
+  const amount = Number($('amount').value);
+  const selling = direction === 'sell';
+  const rate = Number(selling ? rates?.sell_rate : rates?.buy_rate);
+  const fee = Number(rates?.fee);
+  const estimate = (selling ? amount * rate : amount / rate) * (1 - fee / 100);
+  $('result').value = amount > 0 && Number.isFinite(estimate) ? estimate.toFixed(selling ? 2 : 6) : '';
+  $('rateText').textContent = rates ? `参考汇率：1 USDT = ${rate} CNY · 手续费 ${fee}%（非实时行情）` : '';
+  $('submitOrder').disabled = !rates || !methods.length || submitting;
+}
+
+function renderContactsList() {
+  $('contactList').innerHTML = contacts.length
+    ? contacts.map(item => `<div class="item"><b>${esc(item.name)}</b><p>${esc(item.value)}</p></div>`).join('')
+    : '<p>暂无可显示的客服联系方式。</p>';
+}
+
+function renderPublicConfig() {
+  const previousMethod = $('method').value;
+  $('method').innerHTML = methods.map(name => `<option>${esc(name)}</option>`).join('');
+  if (methods.includes(previousMethod)) $('method').value = previousMethod;
+  $('methodChips').innerHTML = methods.map(name => `<span class="chip">${esc(name)}</span>`).join('');
+  renderContactsList();
+  calculate();
+}
+
+async function loadPublicConfig() {
+  const request = ++configRequest;
+  if (!db) {
+    $('connectionStatus').textContent = '数据库客户端加载失败，请检查网络后刷新页面。';
+    return;
+  }
+  $('reloadConfig').classList.add('hidden');
+  if (!rates) $('connectionStatus').textContent = '正在连接数据库…';
+  try {
+    const [nextRates, nextMethods, nextContacts] = await Promise.all([
+      read(db.from('exchange_rates').select('sell_rate,buy_rate,fee').eq('id', 1).single()),
+      read(db.rpc('exchange_method_names')),
+      read(db.from('exchange_contacts').select('id,name,value').order('created_at'))
+    ]);
+    if (request !== configRequest) return;
+    rates = nextRates;
+    methods = nextMethods;
+    contacts = nextContacts;
+    $('connectionStatus').textContent = methods.length ? '' : '暂无可用的收款方式。';
+    renderPublicConfig();
+  } catch {
+    if (request !== configRequest) return;
+    rates = null;
+    methods = [];
+    contacts = [];
+    renderPublicConfig();
+    $('connectionStatus').textContent = '无法读取兑换配置，请稍后重试。';
+    $('reloadConfig').classList.remove('hidden');
+  }
+}
+
+function showContact() {
+  renderContactsList();
+  $('contactDialog').showModal();
+}
+
+function newRequestKey() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 15) | 64;
+  bytes[8] = (bytes[8] & 63) | 128;
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+  return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-');
+}
+
+function showOrder(order) {
+  const selling = order.direction === 'sell';
+  const amount = order.result;
+  const payments = order.payments.map(item => `
+    <div class="item"><b>${esc(item.name)}</b><p>${esc(item.account)}</p><small>${esc(item.note)}</small></div>
+  `).join('');
+  $('orderInfo').innerHTML = `
+    <div class="item"><b>订单号：${esc(order.id)}</b>
+    <p>${selling ? 'USDT → CNY' : 'CNY → USDT'} · ${esc(order.amount.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, ''))} → ${esc(amount)}</p>
+    <p>状态：${esc(order.status)}</p></div>
+    <p class="notice">提交申请后，请先与客服核对报价和收款信息，再按确认信息操作。</p>
+    ${payments}<button onclick="document.getElementById('orderDialog').close();showContact()">联系客服</button>
+  `;
+  $('orderDialog').showModal();
+}
+
+async function createOrder() {
+  if (!db || !rates || !methods.length || submitting) return;
+  const amount = $('amount').value.trim();
+  const numericAmount = Number(amount);
+  const account = $('account').value.trim();
+  const method = $('method').value;
+  if (!Number.isFinite(numericAmount) || numericAmount <= 0 || numericAmount > 1e9 || !account || !method) {
+    return alert('请填写有效的兑换数量与收款信息，数量须大于 0 且不超过 10 亿。');
+  }
+  const orderData = { p_direction: direction, p_amount: amount, p_method: method, p_account: account };
+  const fingerprint = JSON.stringify(orderData);
+  if (pendingOrder?.fingerprint !== fingerprint) {
+    pendingOrder = { fingerprint, key: newRequestKey() };
+  }
+  submitting = true;
+  calculate();
+  try {
+    const order = await read(db.rpc('exchange_submit_order', { ...orderData, p_request_key: pendingOrder.key }));
+    pendingOrder = null;
+    const current = {
+      p_direction: direction,
+      p_amount: $('amount').value.trim(),
+      p_method: $('method').value,
+      p_account: $('account').value.trim()
+    };
+    if (JSON.stringify(current) === fingerprint) {
+      $('amount').value = '';
+      $('account').value = '';
+    }
+    showOrder(order);
+  } catch (error) {
+    if (error.message === '该收款方式已停用，请重新选择') await loadPublicConfig();
+    alert(error.code === 'P0001' ? error.message : '暂时无法确认提交结果，请保留当前信息后重试。');
+  } finally {
+    submitting = false;
+    calculate();
+  }
+}
+
+function showAdmin(user) {
+  adminUser = user;
+  $('loginArea').classList.toggle('hidden', Boolean(user));
+  $('adminArea').classList.toggle('hidden', !user);
+  if (!user) {
+    tabRequest++;
+    orders = [];
+    $('ordersList').replaceChildren();
+    $('paymentList').replaceChildren();
+    $('adminContactList').replaceChildren();
+    $('newPassword').value = '';
+    $('adminStatus').textContent = '';
+    $('telegramStatus').textContent = '';
+  }
+}
+
+async function authorize(user) {
+  if (!user || !(await read(db.rpc('exchange_is_admin')))) return false;
+  const session = await read(db.auth.getSession());
+  if (session.session?.user.id !== user.id) return false;
+  showAdmin(user);
+  await tab('settings');
+  return true;
+}
+
+async function openAdmin() {
+  $('adminDialog').showModal();
+  if (!db) {
+    $('loginStatus').textContent = '数据库客户端加载失败，请刷新页面。';
+    return;
+  }
+  if (adminUser || $('loginButton').disabled) return;
+  $('loginButton').disabled = true;
+  try {
+    const { session } = await read(db.auth.getSession());
+    if (session) await authorize(session.user);
+  } catch {
+    $('loginStatus').textContent = '无法验证管理员会话，请重试。';
+  } finally {
+    $('loginButton').disabled = false;
+  }
+}
+
+async function login(event) {
+  event.preventDefault();
+  if (!db || $('loginButton').disabled) return;
+  const username = $('username').value.trim();
+  if (!/^[0-9]{1,32}$/.test(username)) {
+    $('loginStatus').textContent = '请输入数字管理员账号。';
+    return;
+  }
+  $('loginButton').disabled = true;
+  $('loginStatus').textContent = '正在验证…';
+  try {
+    const { user } = await read(db.auth.signInWithPassword({
+      email: username + '@exchange-admin.invalid', password: $('password').value
+    }));
+    $('password').value = '';
+    if (await authorize(user)) {
+      $('loginStatus').textContent = '请使用已授权的管理员账号登录。';
+    } else {
+      await db.auth.signOut({ scope: 'local' });
+      $('loginStatus').textContent = '此账号尚未获得后台权限。';
+    }
+  } catch {
+    $('loginStatus').textContent = '无法登录，请检查账号、密码及网络后重试。';
+  } finally {
+    $('loginButton').disabled = false;
+  }
+}
+
+async function logout() {
+  await adminAction($('logoutButton'), async () => {
+    await read(db.auth.signOut({ scope: 'local' }));
+    showAdmin(null);
+  });
+}
+
+function renderAdminPayments(items) {
+  $('paymentList').innerHTML = items.map(item => `
+    <div class="item"><b>${esc(item.name)}</b><p>${esc(item.account || '尚未配置账号')} ${esc(item.note)}</p>
+    <label>币种<select data-currency-id="${esc(item.id)}" data-saved-currency="${esc(item.currency)}">
+    <option value="" ${item.currency ? '' : 'selected'} disabled>请选择币种</option>
+    <option value="CNY" ${item.currency === 'CNY' ? 'selected' : ''}>人民币（CNY）</option>
+    <option value="USDT" ${item.currency === 'USDT' ? 'selected' : ''}>USDT</option></select></label>
+    <button class="secondary" data-id="${esc(item.id)}">删除</button></div>
+  `).join('') || '<p>暂无支付方式</p>';
+}
+
+function renderAdminContacts(items) {
+  $('adminContactList').innerHTML = items.map(item => `
+    <div class="item"><b>${esc(item.name)}</b> ${esc(item.value)}
+    <button class="secondary" data-id="${esc(item.id)}">删除</button></div>
+  `).join('') || '<p>暂无客服方式</p>';
+}
+
+async function tab(name) {
+  if (!adminUser) return;
+  const request = ++tabRequest;
+  activeTab = name;
+  ['settings', 'payments', 'contacts', 'orders', 'telegram', 'security'].forEach(item => {
+    $(item + 'Tab').classList.toggle('hidden', item !== name);
+  });
+  if (name === 'orders') return loadOrders(false);
+  $('adminStatus').textContent = name === 'security' || name === 'telegram' ? '' : '正在加载…';
+  try {
+    if (name === 'settings') {
+      const row = await read(db.from('exchange_rates').select('sell_rate,buy_rate,fee').eq('id', 1).single());
+      if (request !== tabRequest) return;
+      $('sellRate').value = row.sell_rate;
+      $('buyRate').value = row.buy_rate;
+      $('fee').value = row.fee;
+    }
+    if (name === 'payments') {
+      $('paymentList').replaceChildren();
+      const items = await read(db.from('exchange_payment_methods').select('id,name,account,note,currency').order('created_at'));
+      if (request !== tabRequest) return;
+      renderAdminPayments(items);
+    }
+    if (name === 'contacts') {
+      $('adminContactList').replaceChildren();
+      const items = await read(db.from('exchange_contacts').select('id,name,value').order('created_at'));
+      if (request !== tabRequest) return;
+      renderAdminContacts(items);
+    }
+    if (request === tabRequest) $('adminStatus').textContent = '';
+  } catch {
+    if (request === tabRequest) $('adminStatus').textContent = '无法加载后台数据，请重试。';
+  }
+}
+
+async function adminAction(button, action) {
+  if (!adminUser || button.disabled) return;
+  button.disabled = true;
+  $('adminStatus').textContent = '';
+  try {
+    await action();
+  } catch {
+    if (adminUser) $('adminStatus').textContent = '操作失败，请检查网络和后台权限后重试。';
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function saveRates(button) {
+  const sell = $('sellRate').value;
+  const buy = $('buyRate').value;
+  const fee = $('fee').value;
+  if (![sell, buy, fee].every(value => value && Number.isFinite(Number(value))) ||
+      Number(sell) <= 0 || Number(buy) <= 0 || Number(sell) > 1e6 || Number(buy) > 1e6 ||
+      Number(fee) < 0 || Number(fee) >= 100) {
+    return alert('请输入有效汇率和手续费。');
+  }
+  await adminAction(button, async () => {
+    await read(db.from('exchange_rates').update({ sell_rate: sell, buy_rate: buy, fee })
+      .eq('id', 1).select('id').single());
+    await loadPublicConfig();
+    if (adminUser && activeTab === 'settings') $('adminStatus').textContent = '汇率已保存。';
+  });
+}
+
+async function addPayment(button) {
+  const name = $('paymentName').value.trim();
+  const account = $('paymentValue').value.trim();
+  const note = $('paymentNote').value.trim();
+  const currency = $('paymentCurrency').value;
+  if (!name || !account) return alert('请填写方式和账号。');
+  await adminAction(button, async () => {
+    await read(db.from('exchange_payment_methods').insert({ name, account, note, currency }));
+    ['paymentName', 'paymentValue', 'paymentNote'].forEach(id => { $(id).value = ''; });
+    await Promise.all([loadPublicConfig(), activeTab === 'payments' && tab('payments')]);
+  });
+}
+
+async function updatePaymentCurrency(event) {
+  const select = event.target.closest('select[data-currency-id]');
+  if (!select || !adminUser) return;
+  await adminAction(select, async () => {
+    try {
+      await read(db.from('exchange_payment_methods').update({ currency: select.value })
+        .eq('id', select.dataset.currencyId).select('id').single());
+      select.dataset.savedCurrency = select.value;
+      if (adminUser && activeTab === 'payments') $('adminStatus').textContent = '币种已保存。';
+    } catch (error) {
+      select.value = select.dataset.savedCurrency;
+      throw error;
+    }
+  });
+}
+
+async function connectTelegram(button) {
+  await adminAction(button, async () => {
+    const status = $('telegramStatus');
+    status.textContent = '正在连接 Telegram…';
+    try {
+      const result = await read(db.functions.invoke('exchange-telegram', { body: { action: 'connect' } }));
+      status.textContent = result.error || `已连接 @${result.username}。请在机器人私聊中发送 /start。`;
+    } catch {
+      status.textContent = '连接失败，请确认后台登录状态和网络后重试。';
+    }
+  });
+}
+
+async function addContact(button) {
+  const name = $('contactName').value.trim();
+  const value = $('contactValue').value.trim();
+  if (!name || !value) return alert('请填写客服渠道和联系方式。');
+  await adminAction(button, async () => {
+    await read(db.from('exchange_contacts').insert({ name, value }));
+    $('contactName').value = '';
+    $('contactValue').value = '';
+    await Promise.all([loadPublicConfig(), activeTab === 'contacts' && tab('contacts')]);
+  });
+}
+
+async function removeItem(event, table, section) {
+  const button = event.target.closest('button[data-id]');
+  if (!adminUser || !button || !confirm('确定删除这条配置？')) return;
+  await adminAction(button, async () => {
+    await read(db.from(table).delete().eq('id', button.dataset.id).select('id').single());
+    await Promise.all([loadPublicConfig(), activeTab === section && tab(section)]);
+  });
+}
+
+function renderOrders() {
+  $('ordersList').innerHTML = orders.length ? `
+    <table><thead><tr><th>订单</th><th>方向/数量</th><th>收款方式</th><th>状态</th></tr></thead>
+    <tbody>${orders.map(item => `
+      <tr><td>${esc(item.id)}${item.source === 'telegram' ? '<br>TG 机器人' : ''}<br>${esc(new Date(item.created_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }))}</td>
+      <td>${item.direction === 'sell' ? 'USDT→CNY' : 'CNY→USDT'}<br>${esc(item.amount)} → ${esc(item.result)}</td>
+      <td>${esc(item.method)}<br>${esc(item.account)}${item.payment_destination
+        ? `<br><span class="muted">平台收款：${esc(item.payment_destination.name)} · ${esc(item.payment_destination.account)}</span>`
+        : ''}</td>
+      <td><select aria-label="订单状态" data-id="${esc(item.id)}">${statusOptions.map(status =>
+        `<option ${item.status === status ? 'selected' : ''}>${status}</option>`).join('')}</select></td></tr>
+    `).join('')}</tbody></table>
+  ` : '<p>暂无订单</p>';
+}
+
+async function loadOrders(append) {
+  if (!adminUser || activeTab !== 'orders') return;
+  const request = ++tabRequest;
+  const button = $('moreOrders');
+  button.disabled = true;
+  $('adminStatus').textContent = '正在加载订单…';
+  const cursor = append ? orders.at(-1) : null;
+  if (!append) {
+    orders = [];
+    $('ordersList').replaceChildren();
+    button.classList.add('hidden');
+  }
+  try {
+    let query = db.from('exchange_orders').select('id,direction,amount::text,result::text,method,account,status,created_at,source,payment_destination')
+      .order('created_at', { ascending: false }).order('id', { ascending: false }).limit(pageSize + 1);
+    if (cursor) {
+      const { created_at: date, id } = cursor;
+      query = query.or(`created_at.lt."${date}",and(created_at.eq."${date}",id.lt.${id})`);
+    }
+    const page = await read(query);
+    if (request !== tabRequest) return;
+    orders.push(...page.slice(0, pageSize));
+    renderOrders();
+    button.classList.toggle('hidden', page.length <= pageSize);
+    $('adminStatus').textContent = '';
+  } catch {
+    if (request === tabRequest) $('adminStatus').textContent = '无法读取订单，请重试。';
+  } finally {
+    if (request === tabRequest) button.disabled = false;
+  }
+}
+
+async function updateOrder(event) {
+  const select = event.target.closest('select[data-id]');
+  if (!adminUser || !select) return;
+  const order = orders.find(item => item.id === select.dataset.id);
+  if (!order) return;
+  const status = select.value;
+  await adminAction(select, async () => {
+    const updated = await read(db.from('exchange_orders').update({ status }).eq('id', order.id)
+      .eq('status', order.status).select('status').maybeSingle());
+    if (updated) {
+      order.status = updated.status;
+    } else {
+      await loadOrders(false);
+      $('adminStatus').textContent = '订单状态已变化，列表已刷新。';
+    }
+  });
+  select.value = order.status;
+}
+
+async function changePassword(button) {
+  const password = $('newPassword').value;
+  if (password.length < 10) return alert('新密码至少 10 位。');
+  await adminAction(button, async () => {
+    await read(db.auth.updateUser({ password }));
+    $('newPassword').value = '';
+    $('adminStatus').textContent = '管理员密码已更新。';
+  });
+}
+
+$('loginForm').addEventListener('submit', login);
+$('paymentList').addEventListener('change', updatePaymentCurrency);
+$('paymentList').addEventListener('click', event => removeItem(event, 'exchange_payment_methods', 'payments'));
+$('adminContactList').addEventListener('click', event => removeItem(event, 'exchange_contacts', 'contacts'));
+$('ordersList').addEventListener('change', updateOrder);
+db?.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT' || (adminUser && session?.user.id !== adminUser.id)) showAdmin(null);
+});
+loadPublicConfig();
+</script>
+</body></html>
